@@ -523,6 +523,8 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
         #
         reads_list = broadcast_sample_reads.value
 
+        # reads_list contains array of elements of FASTQ lines[u'Acinetobacter', u'GCA', u'+', u'GTTTA']
+
         #   Obtain a properly formatted Bowtie2 command.
         bowtieCMD = getBowtie2Command(bowtie2_node_path=bowtie2_node_path,
                                       bowtie2_index_path=bowtie2_index_path,
@@ -537,21 +539,12 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
 
         #   Open a pipe to the subprocess that will launch the Bowtie2 aligner.
         try:
-            print("bowtieCMD..... printed")
-            print(bowtieCMD)
-            if save_to_s3:
-                    print("Splitting the shards")
-                    output_file = output_file.replace("/abundances.txt", "")
-                    output_dir_s3_path = "s3a://" + s3_output_bucket + "/" + output_file + "/shard_" + \
-                                         str(RDD_COUNTER) + "/"
-
-                    #strain_abundances.map(lambda x: "%s\t%s" % (get_organism_name(x[0]), x[1])) \
-                        #.saveAsTextFile(output_dir_s3_path)
+            #print("bowtieCMD..... printed")
+            #print(bowtieCMD) 
 
             align_subprocess = sp.Popen(bowtieCMD, stdin=sp.PIPE, stdout=sp.PIPE, stderr=sp.PIPE)
-            # original was bowtieCMD
             pickled_reads_list = pickle.dumps(reads_list)
-            # no_reads = len(reads_list)
+            # creates a byte object from pickle of the broadcast value 
 
             alignment_output, alignment_error = align_subprocess.communicate(input=pickled_reads_list.decode('latin-1'))
             #   original argument is latin-1
@@ -574,7 +567,10 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
 
                 #   Once the alignment has been parsed, we add it to the return list of alignments that will be
                 #   sent back to the master node.
-                alignments.append(alignment)
+                #   Used to be just alignments
+                alignments.append(worker_node_ip + "\n" + 
+                                 "STDERR: " + stderr + "**********\n" +
+                                 "ALIGNTMENTS:\n" + alignment)
 
 
         except sp.CalledProcessError as err:
@@ -702,6 +698,20 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
             number_of_alignments = alignments_RDD.count()
             print("Line 692 - List of RDD after alignment: ............................")
             print(number_of_alignments)
+            if verbose_output:
+                for ack in number_of_alignments:
+                    print(ack)
+
+            # ------------------------------------------- Test Save Pipe Stdin -------------------------------------------------------
+            if save_to_s3:
+                    print("Saving alignments with bowtie2.......")
+                    output_file = "align_with_bowtie2.txt"
+                    output_dir_s3_path = "s3a://" + s3_output_bucket + "/" + output_file + "/shard_" + \
+                                         str(RDD_COUNTER) + "/"
+
+                    number_of_alignments.saveAsTextFile(output_dir_s3_path)
+                    print("Saved succesfully..........")
+            
             alignment_end_time = time.time()
             alignment_total_time = alignment_end_time - alignment_start_time
 
@@ -712,16 +722,6 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
 
             print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) +
                   "] Analyzing...")
-
-            # ------------------------------------------- Test Save Pipe Stdin -------------------------------------------------------
-            if save_to_s3:
-                    print("Splitting the shards")
-                    output_file = output_file.replace("/abundances.txt", "")
-                    output_dir_s3_path = "s3a://" + s3_output_bucket + "/" + output_file + "/shard_" + \
-                                         str(RDD_COUNTER) + "/"
-
-                    strain_abundances.map(lambda x: "%s\t%s" % (get_organism_name(x[0]), x[1])) \
-                        .saveAsTextFile(output_dir_s3_path)
 
 
             # ------------------------------------------- Map 1 -------------------------------------------------------

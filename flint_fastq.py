@@ -155,7 +155,7 @@ def main(args):
     if verbose_output:
         print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "] Bowtie2 Path: " + str(bowtie2_path))
 
-    default_bowtie2_threads = 6
+    default_bowtie2_threads = 6 
 
     if "bowtie2_threads" in sampleData:
         bowtie2_threads = sampleData["bowtie2_threads"]
@@ -314,7 +314,7 @@ def main(args):
         # (current) or the requested one
 
         output_file = output_directory + "/" + sampleID
-        output_file_name = 'error.txt'
+        output_file_name = 'abundances.txt'
         # testing original was abundances.txt 
         if verbose_output:
             print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "] Save to Amazon S3: " +
