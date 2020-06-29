@@ -167,7 +167,7 @@ def main(args):
     #   Shut down the cluster once everything completes.
     sc.stop()
 
-
+ 
 def copy_index_to_worker(iterator):
     """
     Function that runs on all the Worker nodes. It will copy the Index from the specified location into the worker's

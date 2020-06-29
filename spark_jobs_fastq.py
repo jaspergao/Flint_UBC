@@ -514,6 +514,7 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
 
         """
         alignments = []
+        contents = []
 
         worker_node_ip = str(sp.check_output(["hostname"])).strip()
 
@@ -650,7 +651,8 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
             # to view in Spark UI Storage tab memory for each RDD 
             #print("List of RDD")
             #print(sample_reads_list)
-
+            print('Type for collect()........')
+            print(type(sample_reads_list))
             number_input_reads = len(sample_reads_list)
             print("RDD:....")
             print("Number of RDD lines: {} of input reads".format(number_input_reads))
@@ -696,11 +698,12 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
 
             alignments_RDD = data.mapPartitions(align_with_bowtie2)
             number_of_alignments = alignments_RDD.count()
+            print(type(number_of_alignments))
             print("Line 692 - List of RDD after alignment: ............................")
             print(number_of_alignments)
-            if verbose_output:
-                for ack in number_of_alignments:
-                    print(ack)
+            #if verbose_output:
+                #for ack in number_of_alignments:
+                    #print(ack)
 
             # ------------------------------------------- Test Save Pipe Stdin -------------------------------------------------------
             if save_to_s3:
