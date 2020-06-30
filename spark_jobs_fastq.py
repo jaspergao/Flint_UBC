@@ -680,6 +680,11 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
             alignment_start_time = time.time()
 
             data = sc.parallelize(range(1, partition_size))
+            #should return a list of 1 to 63
+            print("Data type.......................")
+            # Parallelize is lazy thus no action until count
+            # type is pyspark.rdd.RDD
+            print(type(data))
             data_num_partitions = data.getNumPartitions()
 
             if verbose_output:
@@ -697,13 +702,17 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
                       "] Using Sensitive Alignment Mode...")
 
             alignments_RDD = data.mapPartitions(align_with_bowtie2)
+            print("Alignment before count()............")
+            print(type(alignments_RDD))
+            # returns type pyspark.RDD.PipelinedRDD
             number_of_alignments = alignments_RDD.count()
             print(type(number_of_alignments))
+            alignments_list = alignments_RDD.collect()
+            print(type(alignments_list))
             print("Line 692 - List of RDD after alignment: ............................")
-            print(number_of_alignments)
-            #if verbose_output:
-                #for ack in number_of_alignments:
-                    #print(ack)
+            if verbose_output:
+                for ack in alignments_list:
+                    print(ack)
 
             # ------------------------------------------- Test Save Pipe Stdin -------------------------------------------------------
             if save_to_s3:
@@ -712,7 +721,7 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
                     output_dir_s3_path = "s3a://" + s3_output_bucket + "/" + output_file + "/shard_" + \
                                          str(RDD_COUNTER) + "/"
 
-                    number_of_alignments.saveAsTextFile(output_dir_s3_path)
+                    alignments_RDD.saveAsTextFile(output_dir_s3_path)
                     print("Saved succesfully..........")
             
             alignment_end_time = time.time()

@@ -57,9 +57,7 @@ def main(args):
         alignment_output, alignment_error = align_subprocess.communicate(input=sys.stdin.read())
         print("Alignment Sucessful..........")
         print(alignment_output)
-
-    print("Alignment Rate...................")
-    print(alignment_error)
+        print(alignment_error)
 
     except OSError as e:
         print("OS ERROR: " + str(e))
@@ -76,7 +74,7 @@ def getBowtie2Command():
         An array with the bowtie 2 command call split into an array that can be used by the popen() function.
     """
 
-    index_location = '/mnt/bio_data/index/ensembl_v40'
+    index_location = '/mnt/bio_data/index/'
 
     bowtieCMD = '/home/hadoop/apps/bowtie2-2.3.4.1-linux-x86_64/bowtie2 \
                                     --threads 6 \
@@ -85,7 +83,7 @@ def getBowtie2Command():
                                     --no-hd \
                                     --no-unal \
                                     -q \
-                                    -x ' + index_location + ' -U /home/hadoop/Genome4Test_2-fastq.txt'
+                                    -x ' + index_location + ' -U /home/hadoop/Genome4Test_2.fastq -'
 
     return shlex.split(bowtieCMD)
 
