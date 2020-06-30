@@ -710,6 +710,7 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
             alignments_list = alignments_RDD.collect()
             print(type(alignments_list))
             print("Line 692 - List of RDD after alignment: ............................")
+            print(alignments_list)
             if verbose_output:
                 for ack in alignments_list:
                     print(ack)
@@ -717,7 +718,7 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
             # ------------------------------------------- Test Save Pipe Stdin -------------------------------------------------------
             if save_to_s3:
                     print("Saving alignments with bowtie2.......")
-                    output_file = "align_with_bowtie2.txt"
+                    output_file = output_file.replace("abundances.txt", "")
                     output_dir_s3_path = "s3a://" + s3_output_bucket + "/" + output_file + "/shard_" + \
                                          str(RDD_COUNTER) + "/"
 
