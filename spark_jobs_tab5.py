@@ -40,7 +40,6 @@ import shlex
 import pickle
 import json
 import subprocess as sp
-import pdb 
 from pyspark.streaming.kinesis import KinesisUtils, InitialPositionInStream
 from pyspark.accumulators import AccumulatorParam
 
@@ -330,9 +329,10 @@ def dispatch_stream_from_dir(stream_source_dir, sampleID, sample_format, output_
     set_number_of_shards(int(number_of_shards))
     print("Number of shards: {}".format(number_of_shards))
     kinesis_decode = False
-    print("sparks has reached line 333 in sparkjobs.py before FASTQ format")
-    #   Native FASTQ reads.
-    if sample_format == "fastq":
+
+    print("sparks has reached line 333 in sparkjobs.py before TAB5 format")
+    #   Tab5-formatted FASTQ reads.
+    if sample_format == "tab5":
 
         #
         #   Before we do anything, we have to move the data back to the Master. The way Spark Streaming works, is that
@@ -348,8 +348,11 @@ def dispatch_stream_from_dir(stream_source_dir, sampleID, sample_format, output_
         #   In this approach, we'll stream the reads from a S3 directory that we monitor with Spark.
         sample_dstream = ssc.textFileStream(stream_source_dir)
         print("stream_source_dir is s3://flint-implementation/reads2/")
-        sample_dstream.pprint()
-        #rdd_dstream = sample_dstream.flatMap(lambda line: line)
+
+        # too see how many RDD are being created
+        #sample_dstream.count()
+        # persist RDD to see in Spark UI Storage tab
+        #print("Number of RDD: {} of rdd count".format(sample_dstream.count()))
         
         sample_dstream.foreachRDD(lambda rdd: profile_sample(sampleReadsRDD=rdd,
                                                              sc=sc,
@@ -437,7 +440,7 @@ def dispatch_stream_from_kinesis(sampleID, sample_format, output_file, save_to_l
     kinesis_decode = True
 
     #   Tab5-formatted FASTQ reads.
-    if sample_format == "fastq":
+    if sample_format == "tab5":
 
         #
         #   Kinesis streaming
@@ -523,8 +526,6 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
         #
         reads_list = broadcast_sample_reads.value
 
-        # reads_list contains array of elements of FASTQ lines[u'Acinetobacter', u'GCA', u'+', u'GTTTA']
-
         #   Obtain a properly formatted Bowtie2 command.
         bowtieCMD = getBowtie2Command(bowtie2_node_path=bowtie2_node_path,
                                       bowtie2_index_path=bowtie2_index_path,
@@ -539,15 +540,14 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
 
         #   Open a pipe to the subprocess that will launch the Bowtie2 aligner.
         try:
-            #print("bowtieCMD..... printed")
-            #print(bowtieCMD) 
-
             align_subprocess = sp.Popen(bowtieCMD, stdin=sp.PIPE, stdout=sp.PIPE, stderr=sp.PIPE)
+
             pickled_reads_list = pickle.dumps(reads_list)
-            # creates a byte object from pickle of the broadcast value 
+            # no_reads = len(reads_list)
 
             alignment_output, alignment_error = align_subprocess.communicate(input=pickled_reads_list.decode('latin-1'))
             #   original argument is latin-1
+            #   utf-8 in both decode gives abundance.txt 7
             #   The output is returned as a 'bytes' object, so we'll convert it to a list. That way, 'this' worker node
             #   will return a list of the alignments it found.
             for a_read in alignment_output.strip().decode().splitlines():
@@ -567,7 +567,7 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
 
                 #   Once the alignment has been parsed, we add it to the return list of alignments that will be
                 #   sent back to the master node.
-                #   Used to be just alignments
+                #   Used to just be alignment
                 alignments.append(alignment)
 
 
@@ -646,28 +646,25 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
                 sample_reads_list = sampleReadsRDD.collect()    # collect returns <type 'list'> on the main driver.
             
             # to view in Spark UI Storage tab memory for each RDD 
-            #print("List of RDD")
+            print("List of RDD")
             #print(sample_reads_list)
-            print('Type for collect()........')
-            print(type(sample_reads_list))
             number_input_reads = len(sample_reads_list)
             print("RDD:....")
-            print("Number of RDD lines: {} of input reads".format(number_input_reads))
+            print("Number of RDD: {} of input reads".format(number_input_reads))
             #
             #   The RDD with reads is set as a Broadcast variable that will be picked up by each worker node.
             #
             broadcast_sample_reads = sc.broadcast(sample_reads_list)
-            print(" Reached line 645 before running: broadcast sucessful")
-            print("Values inside broadcast:.....")
-            #print(broadcast_sample_reads.value)
-            
-            # printing contents of pickle list to see correct conversion from bytes to string
-            pickled_reads_list = pickle.dumps(broadcast_sample_reads)
-            pickled_content = pickled_reads_list.decode('latin-1')
-            print("Picked Content.............................")
+            print(" Reached line 660 before running: broadcast completed!")
+
+            # checking contents within pickle process and the correct conversion of bytes to string
+
+            pickled_reads_list_1 = pickle.dumps(broadcast_sample_reads.value)
+            pickled_content = pickled_reads_list_1.decode('latin-1')
+            print("Pickled Content.............................")
             print(pickled_content)
             print("Finished Printing Out Pickled Content...................")
-            
+
             #
             #   Run starts here.
             #
@@ -685,11 +682,6 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
             alignment_start_time = time.time()
 
             data = sc.parallelize(range(1, partition_size))
-            #should return a list of 1 to 63
-            print("Data type.......................")
-            # Parallelize is lazy thus no action until count
-            # type is pyspark.rdd.RDD
-            print(type(data))
             data_num_partitions = data.getNumPartitions()
 
             if verbose_output:
@@ -707,29 +699,19 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
                       "] Using Sensitive Alignment Mode...")
 
             alignments_RDD = data.mapPartitions(align_with_bowtie2)
-            print("Alignment before count()............")
+            number_of_alignments = alignments_RDD.count()
             print(type(alignments_RDD))
             # returns type pyspark.RDD.PipelinedRDD
-            number_of_alignments = alignments_RDD.count()
-            print(type(number_of_alignments))
             alignments_list = alignments_RDD.collect()
             print(type(alignments_list))
             print("Line 692 - List of RDD after alignment: ............................")
             print(alignments_list)
-            if verbose_output:
-                for ack in alignments_list:
-                    print(ack)
-
-            # ------------------------------------------- Test Save Pipe Stdin -------------------------------------------------------
-            if save_to_s3:
-                    print("Saving alignments with bowtie2.......")
-                    output_file = output_file.replace("abundances.txt", "")
-                    output_dir_s3_path = "s3a://" + s3_output_bucket + "/" + output_file + "/shard_" + \
-                                         str(RDD_COUNTER) + "/"
-
-                    alignments_RDD.coalesce(1).saveAsTextFile(output_dir_s3_path)
-                    print("Saved succesfully..........")
             
+            # Printing all the contents as line 708
+            #if verbose_output:
+                #for ack in alignments_list:
+                    #print(ack)
+                    
             alignment_end_time = time.time()
             alignment_total_time = alignment_end_time - alignment_start_time
 
@@ -740,7 +722,16 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
 
             print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) +
                   "] Analyzing...")
+            
+              # ------------------------------------------- Test Save Pipe Stdin -------------------------------------------------------
+            if save_to_s3:
+                    print("Saving alignments with bowtie2.......")
+                    output_file = output_file.replace("abundances.txt", "align_with_bowtie2.txt")
+                    output_dir_s3_path = "s3a://" + s3_output_bucket + "/" + output_file + "/shard_" + \
+                                        str(RDD_COUNTER) + "/"
 
+                    alignments_RDD.coalesce(1, shuffle = true).saveAsTextFile(output_dir_s3_path)
+                    print("Saved succesfully..........")
 
             # ------------------------------------------- Map 1 -------------------------------------------------------
             #
@@ -1137,7 +1128,7 @@ def dispatch_local_job(mate_1, mate_2, tab5File, sampleID, sample_format, output
     #
     #   Paired-end Reads Code path.
     #
-    if sample_format == "fastq":
+    if sample_format == "tab5":
 
         # ------------------------------------------ Alignment ----------------------------------------------------
         #
@@ -1323,8 +1314,7 @@ def getBowtie2Command(bowtie2_node_path, bowtie2_index_path, bowtie2_index_name,
                                     --no-hd \
                                     --no-unal \
                                     -q \
-                                    -x ' + index + ' \
-                                    -U -'
+                                    -x ' + index + ' --tab5 -'
 
     return shlex.split(bowtieCMD)
 
@@ -1339,7 +1329,6 @@ def getBowtie2CommandSensitive(bowtie2_node_path, bowtie2_index_path, bowtie2_in
     index_location  = bowtie2_index_path
     index_name      = bowtie2_index_name
     index = index_location + "/" + index_name
-    reads_location = "s3://flint-implementation/reads/"
 
     bowtieCMD = bowtie2_node_path + '/bowtie2 \
                                     --threads 6 \
@@ -1349,8 +1338,6 @@ def getBowtie2CommandSensitive(bowtie2_node_path, bowtie2_index_path, bowtie2_in
                                     --no-hd \
                                     --no-unal \
                                     -q \
-                                    -x ' + index + ' \
-                                    -U -'
-                                    
+                                    -x ' + index + ' --tab5 -'
 
     return shlex.split(bowtieCMD)

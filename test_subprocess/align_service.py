@@ -74,7 +74,7 @@ def getBowtie2Command():
         An array with the bowtie 2 command call split into an array that can be used by the popen() function.
     """
 
-    index_location = '/mnt/bio_data/index/'
+    index_location = '/mnt/bio_data/index/GTDB'
 
     bowtieCMD = '/home/hadoop/apps/bowtie2-2.3.4.1-linux-x86_64/bowtie2 \
                                     --threads 6 \
