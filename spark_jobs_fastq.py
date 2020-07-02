@@ -502,8 +502,6 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
     #
     #   Nested inner function that gets called from the 'mapPartitions()' Spark function.
     #
-    print ("Succesfully calling profile sample method method line 502")
-
     def align_with_bowtie2(iterator):
         """
         Function that runs on ALL worker nodes (Executors). Dispatches a Bowtie2 command and handles read alignments.
@@ -523,7 +521,7 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
         #
         reads_list = broadcast_sample_reads.value
 
-        # reads_list contains array of elements of FASTQ lines[u'Acinetobacter', u'GCA', u'+', u'GTTTA']
+        # reads_list contains array of elements of FASTQ lines[u'species_name', u'reference_gen', u'+', u'GTTTA']
 
         #   Obtain a properly formatted Bowtie2 command.
         bowtieCMD = getBowtie2Command(bowtie2_node_path=bowtie2_node_path,
@@ -539,17 +537,10 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
 
         #   Open a pipe to the subprocess that will launch the Bowtie2 aligner.
         try:
-            #print("bowtieCMD..... printed")
-            #print(bowtieCMD) 
-
             align_subprocess = sp.Popen(bowtieCMD, stdin=sp.PIPE, stdout=sp.PIPE, stderr=sp.PIPE)
-            pickled_reads_list = pickle.dumps(reads_list)
-            # creates a byte object from pickle of the broadcast value 
-
-            alignment_output, alignment_error = align_subprocess.communicate(input=pickled_reads_list.decode('latin-1'))
-            #   original argument is latin-1
-            #   The output is returned as a 'bytes' object, so we'll convert it to a list. That way, 'this' worker node
-            #   will return a list of the alignments it found.
+            alignment_output, alignment_error = align_subprocess.communicate(input="\n".join(reads_list))
+            #  Here we join a new line to the broadcast variable values in order for bowtie2 to correctly recognize the Header/
+            #  DNA Sequence/ + / Quality Score 
             for a_read in alignment_output.strip().decode().splitlines():
 
                 #   Each alignment (in SAM format) is parsed and broken down into two (2) pieces: the read name,
@@ -645,27 +636,20 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
             else:
                 sample_reads_list = sampleReadsRDD.collect()    # collect returns <type 'list'> on the main driver.
             
-            # to view in Spark UI Storage tab memory for each RDD 
-            #print("List of RDD")
-            #print(sample_reads_list)
-            print('Type for collect()........')
-            print(type(sample_reads_list))
             number_input_reads = len(sample_reads_list)
             print("RDD:....")
-            print("Number of RDD lines: {} of input reads".format(number_input_reads))
+            print("Number of RDD elements: {} of input reads".format(number_input_reads))
             #
             #   The RDD with reads is set as a Broadcast variable that will be picked up by each worker node.
             #
             broadcast_sample_reads = sc.broadcast(sample_reads_list)
-            print(" Reached line 645 before running: broadcast sucessful")
-            print("Values inside broadcast:.....")
-            #print(broadcast_sample_reads.value)
-            
+            print("Reached line 645 before running: broadcast completed!")
             # printing contents of pickle list to see correct conversion from bytes to string
-            pickled_reads_list = pickle.dumps(broadcast_sample_reads)
+            pickled_reads_list = pickle.dumps(broadcast_sample_reads.value)
             pickled_content = pickled_reads_list.decode('latin-1')
             print("Picked Content.............................")
-            print(pickled_content)
+            #print("\n".join(pickled_content))
+            #print("\n".join(broadcast_sample_reads))
             print("Finished Printing Out Pickled Content...................")
             
             #
@@ -685,11 +669,6 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
             alignment_start_time = time.time()
 
             data = sc.parallelize(range(1, partition_size))
-            #should return a list of 1 to 63
-            print("Data type.......................")
-            # Parallelize is lazy thus no action until count
-            # type is pyspark.rdd.RDD
-            print(type(data))
             data_num_partitions = data.getNumPartitions()
 
             if verbose_output:
@@ -715,20 +694,19 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
             alignments_list = alignments_RDD.collect()
             print(type(alignments_list))
             print("Line 692 - List of RDD after alignment: ............................")
-            print(alignments_list)
             if verbose_output:
                 for ack in alignments_list:
-                    print(ack)
+                   print(ack)
 
             # ------------------------------------------- Test Save Pipe Stdin -------------------------------------------------------
-            if save_to_s3:
-                    print("Saving alignments with bowtie2.......")
-                    output_file = output_file.replace("abundances.txt", "")
-                    output_dir_s3_path = "s3a://" + s3_output_bucket + "/" + output_file + "/shard_" + \
-                                         str(RDD_COUNTER) + "/"
+            #if save_to_s3:
+                    #print("Saving alignments with bowtie2.......")
+                    #output_file = output_file.replace("abundances.txt", "")
+                    #output_dir_s3_path = "s3a://" + s3_output_bucket + "/" + output_file + "/shard_" + \
+                                         #str(RDD_COUNTER) + "/"
 
-                    alignments_RDD.coalesce(1).saveAsTextFile(output_dir_s3_path)
-                    print("Saved succesfully..........")
+                    #alignments_RDD.coalesce(1).saveAsTextFile(output_dir_s3_path)
+                    #print("Saved succesfully..........")
             
             alignment_end_time = time.time()
             alignment_total_time = alignment_end_time - alignment_start_time

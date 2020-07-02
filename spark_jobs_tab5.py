@@ -542,10 +542,10 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
         try:
             align_subprocess = sp.Popen(bowtieCMD, stdin=sp.PIPE, stdout=sp.PIPE, stderr=sp.PIPE)
 
-            pickled_reads_list = pickle.dumps(reads_list)
-            # no_reads = len(reads_list)
+            #pickled_reads_list = pickle.dumps(reads_list)
+            #pickled_content = pickled_reads_list_1.decode('latin-1')
 
-            alignment_output, alignment_error = align_subprocess.communicate(input=pickled_reads_list.decode('latin-1'))
+            alignment_output, alignment_error = align_subprocess.communicate(input="\n".join(reads_list))
             #   original argument is latin-1
             #   utf-8 in both decode gives abundance.txt 7
             #   The output is returned as a 'bytes' object, so we'll convert it to a list. That way, 'this' worker node
@@ -644,8 +644,7 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
                 sample_reads_list = json.loads(sampleReadsRDD.collect())
             else:
                 sample_reads_list = sampleReadsRDD.collect()    # collect returns <type 'list'> on the main driver.
-            
-            # to view in Spark UI Storage tab memory for each RDD 
+        
             print("List of RDD")
             #print(sample_reads_list)
             number_input_reads = len(sample_reads_list)
@@ -662,7 +661,7 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
             pickled_reads_list_1 = pickle.dumps(broadcast_sample_reads.value)
             pickled_content = pickled_reads_list_1.decode('latin-1')
             print("Pickled Content.............................")
-            print(pickled_content)
+            print("\n".join(broadcast_sample_reads.value))
             print("Finished Printing Out Pickled Content...................")
 
             #
@@ -705,12 +704,11 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
             alignments_list = alignments_RDD.collect()
             print(type(alignments_list))
             print("Line 692 - List of RDD after alignment: ............................")
-            print(alignments_list)
             
             # Printing all the contents as line 708
-            #if verbose_output:
-                #for ack in alignments_list:
-                    #print(ack)
+            if verbose_output:
+                for ack in alignments_list:
+                    print(ack)
                     
             alignment_end_time = time.time()
             alignment_total_time = alignment_end_time - alignment_start_time
@@ -723,15 +721,15 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
             print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) +
                   "] Analyzing...")
             
-              # ------------------------------------------- Test Save Pipe Stdin -------------------------------------------------------
-            if save_to_s3:
-                    print("Saving alignments with bowtie2.......")
-                    output_file = output_file.replace("abundances.txt", "align_with_bowtie2.txt")
-                    output_dir_s3_path = "s3a://" + s3_output_bucket + "/" + output_file + "/shard_" + \
-                                        str(RDD_COUNTER) + "/"
+            # ------------------------------------------- Test Save Pipe Stdin -------------------------------------------------------
+            #if save_to_s3:
+                    #print("Saving alignments with bowtie2.......")
+                    #output_file = output_file.replace("abundances.txt", "align_with_bowtie2.txt")
+                    #output_dir_s3_path = "s3a://" + s3_output_bucket + "/" + output_file + "/shard_" + \
+                                        #str(RDD_COUNTER) + "/"
 
-                    alignments_RDD.coalesce(1, shuffle = true).saveAsTextFile(output_dir_s3_path)
-                    print("Saved succesfully..........")
+                    #alignments_RDD.coalesce(1, shuffle = true).saveAsTextFile(output_dir_s3_path)
+                    #print("Saved succesfully..........")
 
             # ------------------------------------------- Map 1 -------------------------------------------------------
             #
