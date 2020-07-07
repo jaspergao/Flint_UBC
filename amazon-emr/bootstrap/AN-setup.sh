@@ -30,8 +30,8 @@
 # ---------------------------------------------------------------------------------------------------------------------
 
 
-#	Exit immediately if a command exits with a non-zero exit status.
-set -e
+#	Exit immediately if a command exits with a non-zero exit status. -x verbose bash workflow
+set -e -x
 
 #	Default Data and Application directories in the worker nodes
 APPS_DIR="/home/hadoop/apps"
@@ -43,15 +43,31 @@ mkdir -p $BIODATA_DIR
 mkdir -p $INDEX_DIR
 
 #	Versions of the tools we'll be installing
-BOWTIE_VERSION="2.3.4.1"
+#   Old version "2.3.4.1"
+BOWTIE_VERSION="2.4.1"
 SAMTOOLS_VERSION="1.3.1"
+BBMAP_VERSION="38.86"
 
 SOURCE_BUCKET_NAME="flint-implementation"
+
+# need to change permissions on object to see if s3 copy works or else go to path and change
+# change object permission 
+
+# ---------------------------------- copy cmd -----------------------------------------------------
+#aws s3 cp s3://$SOURCE_BUCKET_NAME/apps/bowtie2-$BOWTIE_VERSION-linux-x86_64.zip /home/hadoop/apps/
+#cd $APPS_DIR
+#unzip bowtie2-$BOWTIE_VERSION-linux-x86_64.zip
+#cd /home/hadoop/
 
 #	Bowtie
 wget https://$SOURCE_BUCKET_NAME.s3.amazonaws.com/apps/bowtie2-$BOWTIE_VERSION-linux-x86_64.zip
 unzip -d $APPS_DIR bowtie2-$BOWTIE_VERSION-linux-x86_64.zip
 BOWTIE_DIR=$APPS_DIR"/bowtie2-"$BOWTIE_VERSION"-linux-x86_64"
+
+#  BBMap
+wget https://$SOURCE_BUCKET_NAME.s3.amazonaws.com/apps/BBMap_$BBMAP_VERSION.tar.gz
+tar -xvzf BBMap_$BBMAP_VERSION.tar.gz -C $APPS_DIR
+BBMAP_DIR=$APPS_DIR"/BBMap_"$BBMAP_VERSION
 
 cd ~
 
@@ -65,6 +81,11 @@ echo "alias l='ls -lhF'" >> ~/.bash_profile
 echo "" >> ~/.bashrc
 printf '\n\n# Bowtie2\n' >> ~/.bashrc
 printf 'PATH=$PATH:'$BOWTIE_DIR'/; export PATH\n' >> ~/.bashrc
+
+#   Add BBMap to the path 
+echo "" >> ~/.bashrc
+printf '\n\n# BBMap\n' >> ~/.bashrc
+printf 'PATH=$PATH:'$BBMAP_DIR'/; export PATH\n' >> ~/.bashrc
 
 # -------------------------------------------------- Cert Keys --------------------------------------------------------
 #
