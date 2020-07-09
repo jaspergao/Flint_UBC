@@ -91,15 +91,16 @@ def getBBMAPCommand(bbmap_index_path, bbmap_index_name, bbmap_number_threads):
     index = index_location + "/" + index_name
     number_of_threads = bbmap_number_threads
     
-    bbmapCMD = "bbmap.sh path={} build={} t={}\
+    bbmapCMD = "bbmap.sh path={} t={}\
                 in=stdin.fq \
                 outm=stdout.sam \
                 minidentity=0.97 \
                 interleaved=t \
-                noheader=t".format(index_location, index_name, number_of_threads)
+                noheader=t".format(index_location, number_of_threads)
 ​
     return shlex.split(bbmapCMD)
 ​
+# remove the interleaved and build line 
 ​
 def mimicRDD(readfile):
 	##In FLINT, RDDs are collected as a list of unicode elements

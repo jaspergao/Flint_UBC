@@ -1,15 +1,8 @@
 #!/usr/bin/python
 # coding: utf-8
-
-# ---------------------------------------------------------------------------------------------------------------------
-#
-#                                       Florida International University
-#
-#   This software is a "Camilo Valdes Work" under the terms of the United States Copyright Act.
-#   Please cite the author(s) in any work or product based on this material.
-#
+# --------------------------------------------------------------------------------------------------------------------
 #   OBJECTIVE:
-#	    The purpose of this program is to copy the Bowtie2 index to all the worker nodes in the cluster. The goal
+#	    The purpose of this program is to copy the BBMap index to all the worker nodes in the cluster. The goal
 #       is to copy the index in parallel, so that we don't copy the index sequentially and wait a lot of time.
 #
 #
@@ -19,24 +12,12 @@
 #   DEPENDENCIES:
 #       • Apache-Spark
 #       • Python
-#       • R
 #
 #   You can check the python modules currently installed in your system by running: python -c "help('modules')"
 #
 #   USAGE:
 #       Run the program with the "--help" flag to see usage instructions.
 #
-#	AUTHOR:
-#           Camilo Valdes
-#           cvalde03@fiu.edu
-#           https://github.com/camilo-v
-#			Florida International University, FIU
-#           School of Computing and Information Sciences
-#           Bioinformatics Research Group, BioRG
-#           http://biorg.cs.fiu.edu/
-#
-#
-# ---------------------------------------------------------------------------------------------------------------------
 
 #   Spark Modules
 from pyspark import SparkConf, SparkContext
@@ -67,12 +48,12 @@ def main(args):
     #   Command-line Arguments, and miscellaneous declarations.
     #
     parser = argparse.ArgumentParser()
-    parser.add_argument("--shards", required=True, type=int, help="Number of Bowtie2 Index Shards.")
-    parser.add_argument("--bowtie2_index", required=True, type=str, help="S3 Path of bucket.")
+    parser.add_argument("--shards", required=True, type=int, help="Number of BBMap Index Shards.")
+    parser.add_argument("--bbmap_index", required=True, type=str, help="S3 Path of bucket.")
     parser.add_argument("--verbose", required=False, action="store_true", help="Wordy print statements.")
     args = parser.parse_args(args)
 
-    index_location_s3 = args.bowtie2_index
+    index_location_s3 = args.bbmap_index
     index_location_s3.strip()
     number_of_index_shards = args.shards
 
@@ -109,13 +90,12 @@ def main(args):
 
     print("[ " + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + " ] Index Shards to Copy:")
 
-    for location in list_of_index_shards:Also 
-        print(location)
+    for location in list_of_index_shards: 
+        print(location) 
 
     print("[ " + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + " ] ")
 
     index_shards = sc.parallelize(list_of_index_shards)
-    # index_shards = index_shards.repartition(number_of_index_shards)
 
     print("[ " + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + " ] No. RDD Partitions: " +
           str(index_shards.getNumPartitions()))

@@ -109,7 +109,7 @@ def main(args):
 
     print("[ " + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + " ] Index Shards to Copy:")
 
-    for location in list_of_index_shards:Also 
+    for location in list_of_index_shards:
         print(location)
 
     print("[ " + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + " ] ")

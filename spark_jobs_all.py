@@ -349,7 +349,6 @@ def dispatch_stream_from_dir(stream_source_dir, sampleID, sample_format, output_
         sample_dstream = ssc.textFileStream(stream_source_dir)
         print("stream_source_dir is s3://flint-implementation/reads2/")
         sample_dstream.pprint()
-        #rdd_dstream = sample_dstream.flatMap(lambda line: line)
         
         sample_dstream.foreachRDD(lambda rdd: profile_sample(sampleReadsRDD=rdd,
                                                              sc=sc,
@@ -382,113 +381,6 @@ def dispatch_stream_from_dir(stream_source_dir, sampleID, sample_format, output_
         ssc.awaitTermination()      # Wait for the streaming computations to finish.
         ssc.stop()  # Stop the Streaming context
 
-
-
-# -------------------------------------------- Stream from a Directory ------------------------------------------------
-#
-#
-def dispatch_stream_from_kinesis(sampleID, sample_format, output_file, save_to_local, save_to_s3, partition_size, ssc,
-                                 app_name, stream_name, endpoint_url, region_name, keep_shard_profiles,
-                                 sensitive_align, annotations_dictionary, s3_output_bucket, coalesce_output,
-                                 number_of_shards, sample_type, verbose_output, debug_mode, streaming_timeout):
-    """
-    Executes the requested Spark job in the cluster using a streaming strategy.
-    Args:
-        sampleID:               The unique id of the sample.
-        sample_format:          What type of input format are the reads in (tab5, fastq, tab6, etc.).
-        sample_type:            Are the reads single-end or paired-end.
-        number_of_shards:       The number of shards that we'll be picking up from the Kinesis stream.
-        output_file:            The path to the output file.
-        save_to_s3:             Flag for storing output to AWS S3.
-        save_to_local:          Flag for storing output to the local filesystem.
-        partition_size:         Level of parallelization for RDDs that are not partitioned by the system.
-        ssc:                    Spark Streaming Context.
-        app_name:               Kinesis app name.
-        stream_name:            Kinesis stream name.
-        endpoint_url:           Kinesis Stream URL.
-        region_name:            Amazon region name for the Kinesis stream.
-        sensitive_align:        Sensitive Alignment Mode.
-        annotations_dict:       Dictionary of Annotations for reporting organism names.
-        s3_output_bucket:       The S3 bucket to write files into.
-        keep_shard_profiles:    Retains the rolling shard profiles in S3 or the local filesystem.
-        coalesce_output:        Merge output into a single file.
-        verbose_output:         Flag for wordy terminal print statements.
-        debug_mode:             Flag for debug mode. Activates slow checkpoints.
-        streaming_timeout:      Time (in sec) after which streaming will stop.
-
-    Returns:
-        Nothing, if all goes well it should return cleanly.
-
-    """
-
-    print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "] ")
-    print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) +
-          "] Stream Source: [KINESIS]")
-    print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "] Sample ID: " + sampleID +
-          " (" + sample_format + ", " + sample_type + ")")
-    print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "] Stream Name: " + endpoint_url)
-    print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "] Region: " + region_name)
-    print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "] Streaming starting...")
-    print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "] ")
-
-    #   Set the number of shards so that we can safely exit after we have analyzed the requested number of shards.
-    set_number_of_shards(int(number_of_shards))
-
-    kinesis_decode = True
-
-    #   Tab5-formatted FASTQ reads.
-    if sample_format == "fastq":
-
-        #
-        #   Kinesis streaming
-        #
-        sample_dstream = KinesisUtils.createStream(ssc,
-                                                   app_name,
-                                                   stream_name,
-                                                   endpoint_url,
-                                                   region_name,
-                                                   InitialPositionInStream.TRIM_HORIZON,
-                                                   5)
-
-        #
-        #   Before we do anything, we have to move the data back to the Master. The way Spark Streaming works, is that
-        #   the RDDs will be processed in the Worker in which they were received, which does not parallelize well.
-        #   If we did not ship the input reads back to the master, then they would only be aligned in one Executor.
-        #
-        sc = ssc.sparkContext
-        sample_dstream.foreachRDD(lambda rdd: profile_sample(sampleReadsRDD=rdd,
-                                                             sc=sc,
-                                                             ssc=ssc,
-                                                             output_file=output_file,
-                                                             save_to_s3=save_to_s3,
-                                                             save_to_local=save_to_local,
-                                                             sample_type=sample_type,
-                                                             sensitive_align=sensitive_align,
-                                                             annotations_dictionary=annotations_dictionary,
-                                                             partition_size=partition_size,
-                                                             s3_output_bucket=s3_output_bucket,
-                                                             kinesis_decode=kinesis_decode,
-                                                             keep_shard_profiles=keep_shard_profiles,
-                                                             coalesce_output=coalesce_output,
-                                                             verbose_output=verbose_output,
-                                                             debug_mode=debug_mode,
-                                                             streaming_timeout=streaming_timeout,
-                                                             bowtie2_node_path=get_bowtie2_path(),
-                                                             bowtie2_index_path=get_bowtie2_index_path(),
-                                                             bowtie2_index_name=get_bowtie2_index_name(),
-                                                             bowtie2_number_threads=get_bowtie2_number_threads()))
-
-
-        # ---------------------------------------- Start Streaming ----------------------------------------------------
-        #
-        #
-        ssc.start()     # Start to schedule the Spark job on the underlying Spark Context.
-        ssc.awaitTermination()      # Wait for the streaming computations to finish.
-        ssc.stop()  # Stop the Streaming context
-
-
-
-
 # --------------------------------------------- Processing Functions --------------------------------------------------
 #
 #   This is where all the action is. This function gets called by both of the streaming job functions, and the code
@@ -502,9 +394,9 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
     #
     #   Nested inner function that gets called from the 'mapPartitions()' Spark function.
     #
-    def align_with_bowtie2(iterator):
+    def align_with_bbmap(iterator):
         """
-        Function that runs on ALL worker nodes (Executors). Dispatches a Bowtie2 command and handles read alignments.
+        Function that runs on ALL worker nodes (Executors). Dispatches a BBMap command and handles read alignments.
         Args:
             iterator:   Iterator object from Spark
 
@@ -524,22 +416,16 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
         # reads_list contains array of elements of FASTQ lines[u'species_name', u'reference_gen', u'+', u'GTTTA']
 
         #   Obtain a properly formatted Bowtie2 command.
-        bowtieCMD = getBowtie2Command(bowtie2_node_path=bowtie2_node_path,
-                                      bowtie2_index_path=bowtie2_index_path,
-                                      bowtie2_index_name=bowtie2_index_name,
-                                      bowtie2_number_threads=bowtie2_number_threads)
-        if sensitive_align:
-            bowtieCMD = getBowtie2CommandSensitive(bowtie2_node_path=bowtie2_node_path,
-                                                   bowtie2_index_path=bowtie2_index_path,
-                                                   bowtie2_index_name=bowtie2_index_name,
-                                                   bowtie2_number_threads=bowtie2_number_threads)
+        bbmapCMD = getBBMAPCommand(bbmap_node_path=bowtie2_node_path,
+                                   bbmap_index_path=bowtie2_index_path,
+                                   bbmap_index_name=bowtie2_index_name,
+                                   bbmap_number_threads=bowtie2_number_threads)
 
-
-        #   Open a pipe to the subprocess that will launch the Bowtie2 aligner.
+        #   Open a pipe to the subprocess that will launch the BBmap aligner.
         try:
-            align_subprocess = sp.Popen(bowtieCMD, stdin=sp.PIPE, stdout=sp.PIPE, stderr=sp.PIPE)
+            align_subprocess = sp.Popen(bbmapCMD, stdin=sp.PIPE, stdout=sp.PIPE, stderr=sp.PIPE)
             alignment_output, alignment_error = align_subprocess.communicate(input="\n".join(reads_list))
-            #  Here we join a new line to the broadcast variable values in order for bowtie2 to correctly recognize the Header/
+            #  Here we join a new line to the broadcast variable values in order for bbmap to correctly recognize the Header/
             #  DNA Sequence/ + / Quality Score 
             for a_read in alignment_output.strip().decode().splitlines():
 
@@ -637,27 +523,12 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
                 sample_reads_list = sampleReadsRDD.collect()    # collect returns <type 'list'> on the main driver.
             
             number_input_reads = len(sample_reads_list)
-            print("RDD:....")
-            print("Number of RDD elements: {} of input reads".format(number_input_reads))
             #
             #   The RDD with reads is set as a Broadcast variable that will be picked up by each worker node.
             #
             broadcast_sample_reads = sc.broadcast(sample_reads_list)
             print("Reached line 645 before running: broadcast completed!")
-            # printing contents of pickle list to see correct conversion from bytes to string
-            pickled_reads_list = pickle.dumps(broadcast_sample_reads.value)
-            pickled_content = pickled_reads_list.decode('latin-1')
-            print("Picked Content.............................")
-            #print("\n".join(pickled_content))
-            #print("\n".join(broadcast_sample_reads))
-            print("Finished Printing Out Pickled Content...................")
             
-            #print("bowtieCMD array returns.............")
-            #bowtieCMD = getBowtie2Command(bowtie2_node_path=bowtie2_node_path,
-                                      bowtie2_index_path=bowtie2_index_path,
-                                      bowtie2_index_name=bowtie2_index_name,
-                                      bowtie2_number_threads=bowtie2_number_threads)
-            #print(bowtieCMD)
             #
             #   Run starts here.
             #
@@ -682,21 +553,26 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
                       str(data_num_partitions))
 
             #
-            #   Dispatch the Alignment job with Bowtie2
+            #   Dispatch the Alignment job with BBMap
             #
             print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) +
-                  "] Aligning reads with Bowtie2 (" + str(bowtie2_number_threads) + ")...")
+                  "] Aligning reads with BBMap (" + str(bowtie2_number_threads) + ")...")
 
             if sensitive_align:
                 print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) +
                       "] Using Sensitive Alignment Mode...")
-
-            alignments_RDD = data.mapPartitions(align_with_bowtie2)
+            
+            bbmapCMD = getBBMAPCommand(bbmap_node_path=bowtie2_node_path,
+                                   bbmap_index_path=bowtie2_index_path,
+                                   bbmap_index_name=bowtie2_index_name,
+                                   bbmap_number_threads=bowtie2_number_threads)
+            print("bbmapCMD array is:.............")
+            print(bbmapCMD)
+            alignments_RDD = data.mapPartitions(align_with_bbmap)
+            
             print("Alignment before count()............")
-            print(type(alignments_RDD))
             # returns type pyspark.RDD.PipelinedRDD
             number_of_alignments = alignments_RDD.count()
-            print(type(number_of_alignments))
             alignments_list = alignments_RDD.collect()
             print(type(alignments_list))
             print("Line 692 - List of RDD after alignment: ............................")
@@ -704,20 +580,11 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
                 for ack in alignments_list:
                    print(ack)
 
-            # ------------------------------------------- Test Save Pipe Stdin -------------------------------------------------------
-            #if save_to_s3:
-                    #print("Saving alignments with bowtie2.......")
-                    #output_file = output_file.replace("abundances.txt", "")
-                    #output_dir_s3_path = "s3a://" + s3_output_bucket + "/" + output_file + "/shard_" + \
-                                         #str(RDD_COUNTER) + "/"
-
-                    #alignments_RDD.coalesce(1).saveAsTextFile(output_dir_s3_path)
-                    #print("Saved succesfully..........")
             
             alignment_end_time = time.time()
             alignment_total_time = alignment_end_time - alignment_start_time
 
-            print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "] Bowtie2 - Complete. " +
+            print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "] BBMap - Complete. " +
                   "(" + str(timedelta(seconds=alignment_total_time)) + ")")
             print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "]" + " Found: " +
                   '{:0,.0f}'.format(number_of_alignments) + " Alignments.")
@@ -1090,156 +957,6 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
 
 
 
-
-
-# --------------------------------------------- Non-Streaming Job -----------------------------------------------------
-#
-#
-def dispatch_local_job(mate_1, mate_2, tab5File, sampleID, sample_format, output_file,
-                       save_to_s3, partition_size, sc):
-    """
-    Executes the requested Spark job in the cluster in a non-streaming method.
-    Args:
-        mate_1: Paired-end reads left-side read.
-        mate_2: Paired-end reads right-side read.
-        tab5File:   Sample reads file in tab5 format.
-        sampleID:   The unique id of the sample.
-        sample_format: What type of input format are the reads in (tab5, fastq, tab6, etc.).
-        output_file:    The path to the output file.
-        save_to_s3: Flag for storing output to AWS S3.
-        partition_size: Level of parallelization for RDDs that are not partitioned by the system.
-        sc:     Spark Context.
-
-    Returns:
-        Nothing, if all goes well it should return cleanly.
-    """
-
-    print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "] ")
-    print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "]" + " Analyzing Sample " + sampleID +
-          " (" + sample_format + ")")
-
-    #
-    #   Paired-end Reads Code path.
-    #
-    if sample_format == "fastq":
-
-        # ------------------------------------------ Alignment ----------------------------------------------------
-        #
-        #   Alignment of sample reads to the index in each of the workers is delegated to Bowtie2, and getting the
-        #   reads to bowtie2 is performed through Spark's most-excellent pipe() function that sends the contents
-        #   of the RDD to the STDIN of the mapping script. The mapping script communicates with bowtie2 and outputs
-        #   the alignments to STDOUT which is captured by Spark and returned to us as an RDD.
-        #
-
-        print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "] Loading Sample...")
-        sampleRDD = loadTab5File(sc, tab5File)
-        sampleReadsRDD = sampleRDD.values()
-
-        print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "] Starting Alignment with Bowtie2...")
-        alignment_start_time = time.time()
-
-        alignmentsRDD = sampleReadsRDD.pipe(dnaMappingScript)
-
-        numberOfAlignments = alignmentsRDD.count()
-
-        alignment_end_time = time.time()
-        alignment_total_time = alignment_end_time - alignment_start_time
-
-        print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "] Bowtie2 - Complete. " +
-              "(" + str(timedelta(seconds=alignment_total_time)) + ")")
-        print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "]" + " Found: " +
-              '{:0,.0f}'.format(numberOfAlignments) + " Alignments.")
-        print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "]")
-
-
-        # --------------------------------------------- Map -------------------------------------------------------
-        #
-        #   The Map step sets up the basic data structure that we start with — a map of reads to the genomes they
-        #   align to.  Each alignment (in SAM format) is parsed an broken down into two (2) pieces: the read name,
-        #   and the genome reference.  The REDUCE step afterwards will collect all the genomes and key them to a
-        #   unique read name.
-        #
-        #   SAM format: [0] - QNAME (the read name)
-        #               [1] - FLAG
-        #               [2] - RNAME (the genome reference name that the read aligns to
-
-        #   We'll Map a read (QNAME) with a genome reference name (RNAME).
-        print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "] MAP - Reads to Genomes (QNAME-RNAME).")
-        mapReadToGenomes    = alignmentsRDD.map(lambda line: (line.split("\t")[0], [line.split("\t")[2]] ))
-
-
-        # -------------------------------------------- Reduce -----------------------------------------------------
-        #
-        #   Reduce will operate first by calculating the read contributions, and then using these contributions
-        #   to calculate an abundance.
-        #   Note the "+" operator can be used to concatenate two lists. :)
-        #
-
-        #   'Reduce by Reads' will give us a 'dictionary-like' data structure that contains a Read Name (QNAME) as
-        #   the KEY, and a list of genome references (RNAME) as the VALUE. This allows us to calculate
-        #   each read's contribution.
-        print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "] REDUCE - Reads to list of Genomes.")
-        readsToGenomesList = mapReadToGenomes.reduceByKey(lambda l1, l2: l1 + l2)
-
-
-        # ---------------------------------- Fractional Reads & Abundances ----------------------------------------
-        #
-        #   Read Contributions.
-        #   Each read is normalized by the number of genomes it maps to. The idea is that reads that align to
-        #   multiple genomes will contribute less (have a hig denominator) than reads that align to fewer genomes.
-
-        print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "]")
-        print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "] Calculating Read Contributions...")
-        readContributions = readsToGenomesList.mapValues(lambda l1: 1/float(len(l1)))
-
-        #   Once we have the read contributions, we'll JOIN them with the starting mapReadToGenomes RDD to get an
-        #   RDD that will map the read contribution to the Genome it aligns to.
-        #   Note: l[0] is the Read name (key), and l[1] is the VALUE (a list) after the join.
-        print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) +
-              "] Joining Read Contributions to Genomes...")
-
-        readContributionToGenome = readContributions.join(mapReadToGenomes)\
-                                                    .map(lambda l: (l[1][0], "".join(l[1][1])))
-
-        #   After we have the RDD mapping the Read Contributions to Genome Names, we'll flip the (KEY,VALUE) pairings
-        #   so that we have Genome Name as KEY and Read Contribution as Value.
-        print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) +
-              "] Flipping Genomes and Read Contributions...")
-
-        genomesToReadContributions = readContributionToGenome.map(lambda x: (x[1], x[0]))
-
-        #   Following the KEY-VALUE inversion, we do a reduceByKey() to aggregate the fractional counts for a
-        #   given Genome and calculate its abundance.
-        print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "] Calculating Genome Abundances...")
-
-        genomeAbundances = genomesToReadContributions.reduceByKey(lambda l1, l2: l1 + l2)
-
-
-        # ------------------------------------------ Output Reports -----------------------------------------------
-        #
-        #   Reports are written out to an S3 bucket specified in the initial JSON config file.
-        #
-        print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "]")
-        print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "] Writing Output Reports...")
-
-        if save_to_s3:
-
-            #   We map the abundances so that we get a nice tab-delimited file, then repartition it so that we only
-            #   get a single file, and not multiple ones for each partition.
-            genomeAbundances.map(lambda x: "%s\t%s" %(x[0],x[1]))\
-                            .repartition(1)\
-                            .saveAsTextFile(output_file)
-
-        else:
-            writer = csv.writer(open(output_file, "wb"), delimiter='\t', lineterminator="\n")
-            abundances = genomeAbundances.collect()
-            writer.writerow(abundances)
-
-
-        return
-
-
-
 # ----------------------------------------------- Helper Functions ----------------------------------------------------
 #
 #   Miscellaneous helper functions for Mapping, accumulating, reducing, etc.
@@ -1286,34 +1003,7 @@ def loadFASTQFile(sc, pathToSampleFile):
 
     return sampleRDD
 
-
 def getBowtie2Command(bowtie2_node_path, bowtie2_index_path, bowtie2_index_name, bowtie2_number_threads):
-    """
-    Constructs a properly formatted shell Bowtie2 command by performing a simple lexical analysis using 'shlex.split()'.
-    Returns:
-        An array with the bowtie 2 command call split into an array that can be used by the popen() function.
-    """
-    # delete the local and set it above a certain identity nucleotide percentage check Bowtie manual
-    # originally have --local \ before -D 5 -R 1 -N 0 -L 25 -i
-    # check the github 
-    index_location  = bowtie2_index_path
-    index_name      = bowtie2_index_name
-    index = index_location + "/" + index_name
-    number_of_threads = bowtie2_number_threads
-
-    bowtieCMD = bowtie2_node_path + '/bowtie2 \
-                                    --threads ' + str(number_of_threads) + ' \
-                                    --no-sq \
-                                    --no-hd \
-                                    --no-unal \
-                                    -q \
-                                    -x ' + index + ' \
-                                    -U -'
-
-    return shlex.split(bowtieCMD)
-
-
-def getBowtie2CommandSensitive(bowtie2_node_path, bowtie2_index_path, bowtie2_index_name, bowtie2_number_threads):
     """
     Constructs a properly formatted shell Bowtie2 command by performing a simple lexical analysis using 'shlex.split()'.
     Returns:
@@ -1335,6 +1025,24 @@ def getBowtie2CommandSensitive(bowtie2_node_path, bowtie2_index_path, bowtie2_in
                                     -q \
                                     -x ' + index + ' \
                                     -U -'
-                                    
-
     return shlex.split(bowtieCMD)
+
+def getBBMAPCommand(bbmap_node_path,bbmap_index_path, bbmap_index_name, bbmap_number_threads):
+    """
+    Constructs a properly formmated shell BBMap command by taking in FASTQ files from stdin. 
+    Returns:
+        An array of BBMap flags and arguments back to popen() function.
+
+    """
+    index_location  = bbmap_index_path
+    index_name      = "1"
+    index = index_location + "/" + index_name
+    number_of_threads = bbmap_number_threads
+    
+    bbmapCMD = bbmap_node_path + "/bbmap.sh path={} build={} t={}\
+                in=stdin.fq \
+                outm=stdout.sam \
+                minidentity=0.97 \
+                noheader=t".format(index_location, index_name, number_of_threads)
+
+    return shlex.split(bbmapCMD)

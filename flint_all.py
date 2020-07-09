@@ -238,13 +238,16 @@ def main(args):
                   "] [ERROR] ⚠️ Sample Requirements Error." + str(sample_requirements_key_error))
             exit(1)
 
+        # this code block probably not required TODO: fix or reformat it 
+        filetype = sample_format.lower()
+
         try:
-            if sample_format.lower() != "fastq":
+            if filetype not in ("fastq", "tab5"):
                 raise ValueError()
         except (ValueError, IndexError):
-            print("[ERROR] ⚠️ Read Format Error. Only FASTQ-formatted or TAB5 read files are supported.")
+            print("[ERROR] ⚠️ Read Format Error. Only FASTQ-formatted read files are supported.")
             exit(1)
-            
+
         try:
             if sample_type.lower() not in ("single", "paired"):
                 raise ValueError()
@@ -289,18 +292,6 @@ def main(args):
                 exit(1)
 
 
-        # ------------------------------ Properties for local processing (non-streaming) ------------------------------
-        else:
-            try:
-                mate_1 = aSample["mate_1"]
-                mate_2 = aSample["mate_2"]
-            except KeyError as non_stream_key_error:
-                print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) +
-                      "] [ERROR] ⚠️ Non-Streaming Key Error. Missing: " +
-                      str(non_stream_key_error))
-                exit(1)
-
-
         # ---------------------------------------------- Output Files -------------------------------------------------
         #
         # If we are not saving to AWS S3, then we'll check if the output directory exists — either the default
@@ -308,7 +299,7 @@ def main(args):
 
         output_file = output_directory + "/" + sampleID
         output_file_name = 'abundances.txt'
-        # testing original was abundances.txt 
+
         if verbose_output:
             print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "] Save to Amazon S3: " +
                   str(save_to_s3) )
@@ -323,21 +314,6 @@ def main(args):
         if save_to_s3:
             s3_output_bucket = aSample['output_bucket']
             output_file = output_file + "/" + output_file_name
-
-        if save_to_local:
-            local_output_directory = output_directory + "/" + sampleID
-            if not os.path.exists(local_output_directory):
-                print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "]" +
-                      " Output directory does not exist. Creating...")
-                os.makedirs(local_output_directory)
-
-            if keep_shard_profiles:
-                local_shard_profile_output_dir = local_output_directory + "/shard_profiles"
-                if not os.path.exists(local_shard_profile_output_dir):
-                    os.makedirs(local_shard_profile_output_dir)
-
-            output_file = local_output_directory + "/" + output_file_name
-
 
         # -------------------------------------------------- Spark ----------------------------------------------------
         #
@@ -369,6 +345,7 @@ def main(args):
         sc.addPyFile(os.path.join(os.path.dirname(__file__), 'modules/flint_utilities.py'))
         sc.addPyFile(os.path.join(os.path.dirname(__file__), 'modules/flint_bowtie2_mapping.py'))
 
+        # multiple files here are uneeded besides spark_jobs.py
         #   Add the DNA mapping resources
         sc.addFile(os.path.join(os.path.dirname(__file__), 'services/align_service.py'))
 
@@ -480,22 +457,6 @@ def main(args):
                                             str(gca_id),
                                             str(organism_name),
                                             "0.000000"])
-
-
-            # ------------------------------------------ Local Output -------------------------------------------------
-            #
-            #   Save a coalesced 'abundances.txt' output file to the 'local' filesystem of the Master Node.
-            #
-            if save_to_local:
-                if verbose_output:
-                    print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) +
-                          "] Saving to local filesystem...")
-
-                writer = csv.writer(open(output_file, "wb"), delimiter='\t', lineterminator="\n", quotechar='',
-                                    quoting=csv.QUOTE_NONE)
-
-                for a_line in output_list:
-                    writer.writerow(a_line)
 
             # -------------------------------------------- S3 Output --------------------------------------------------
             #
