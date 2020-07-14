@@ -404,6 +404,7 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
 
         """
         alignments = []
+        errors =[]
 
         worker_node_ip = str(sp.check_output(["hostname"])).strip()
 
@@ -427,6 +428,7 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
             alignment_output, alignment_error = align_subprocess.communicate(input="\n".join(reads_list))
             #  Here we join a new line to the broadcast variable values in order for bbmap to correctly recognize the Header/
             #  DNA Sequence/ + / Quality Score 
+
             for a_read in alignment_output.strip().decode().splitlines():
 
                 #   Each alignment (in SAM format) is parsed and broken down into two (2) pieces: the read name,
@@ -446,12 +448,14 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
                 #   sent back to the master node.
                 #   Used to be just alignments
                 alignments.append(alignment)
+            
+            #errors.append("OUTPUT of: alignment_error.decode()\n" + alignment_error.decode())
 
 
         except sp.CalledProcessError as err:
             print( "[Flint - ALIGN ERROR] " + str(err))
             sys.exit(-1)
-
+        # for debugging purposes put in errors
         return iter(alignments)
 
 
@@ -573,12 +577,16 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
             print("Alignment before count()............")
             # returns type pyspark.RDD.PipelinedRDD
             number_of_alignments = alignments_RDD.count()
-            alignments_list = alignments_RDD.collect()
-            print(type(alignments_list))
-            print("Line 692 - List of RDD after alignment: ............................")
-            if verbose_output:
-                for ack in alignments_list:
-                   print(ack)
+            #alignments_list = alignments_RDD.collect()
+            #print(type(alignments_list))
+            #print("Line 692 - List of RDD after alignment: ............................")
+            #if verbose_output:
+                #nodes = 0 
+                #for ack in alignments_list:
+                   #print(ack)
+                   #nodes += 1
+                #print("Number of results from worker nodes: {}".format(nodes))
+
 
             
             alignment_end_time = time.time()
@@ -1039,10 +1047,13 @@ def getBBMAPCommand(bbmap_node_path,bbmap_index_path, bbmap_index_name, bbmap_nu
     index = index_location + "/" + index_name
     number_of_threads = bbmap_number_threads
     
-    bbmapCMD = bbmap_node_path + "/bbmap.sh path={} build={} t={}\
+    bbmapCMD = bbmap_node_path + "/bbmap.sh path={} t={}\
+                usemodulo=t\
+                -Xmx5g \
                 in=stdin.fq \
                 outm=stdout.sam \
                 minidentity=0.97 \
-                noheader=t".format(index_location, index_name, number_of_threads)
+                int=f \
+                noheader=t".format(index_location, number_of_threads)
 
     return shlex.split(bbmapCMD)

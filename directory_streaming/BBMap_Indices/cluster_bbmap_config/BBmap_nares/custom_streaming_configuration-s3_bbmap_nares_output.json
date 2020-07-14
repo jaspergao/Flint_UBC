@@ -10,7 +10,7 @@
   },
   "samples":[
     {
-    	"id": "BBmap_4for64_fastq",
+    	"id": "BBmap_SR061332",
     	"sample_format": "fastq",
         "sample_type": "paired",
         "streaming_app_name": "flint",
@@ -18,7 +18,7 @@
         "batch_duration": "3",
         "output_dir": "result", 
         "output_bucket": "flint-result",
-        "number_of_shards": "2"
+        "number_of_shards": "8"
     }
     
   ]
