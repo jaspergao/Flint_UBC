@@ -169,7 +169,7 @@ def copy_index_to_worker(iterator):
 
         aws_copy_command = "aws s3 cp --recursive " + s3_location + " " + local_index_path
 
-        aws_process = sp.Popen(shlex.split(aws_copy_command), stdout=sp.PIPE, stderr=sp.PIPE)
+        aws_process = sp.Popen(shlex.split(aws_copy_command), stdout=sp.PIPE, stderr=sp.PIPE, universal_newlines=True, bufsize=1)
         stdout, stderr = aws_process.communicate()
         return_data.append(worker_node_ip + "\n" +
                            "STDERR: " + stderr + "**********\n" +

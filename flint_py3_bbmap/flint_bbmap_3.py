@@ -469,8 +469,9 @@ def main(args):
 
                 output_df  = pd.DataFrame(output_list)
                 csv_buffer = io.BytesIO()
+                string_buffer = io.TextIOWrapper(csv_buffer)
                 # type error from a bytes-like object is required, not 'str'
-                output_df.to_csv(csv_buffer, header=False, sep="\t", index=False)
+                output_df.to_csv(string_buffer, header=False, sep="\t", index=False)
 
                 response = client.put_object(
                     Bucket=s3_output_bucket,
