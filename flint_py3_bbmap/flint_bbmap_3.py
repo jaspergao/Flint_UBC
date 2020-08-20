@@ -19,10 +19,9 @@
 #
 #   DEPENDENCIES:
 #       • Apache-Spark
-#       • Python
-#       • Biopython
+#       • Python 3.6.x 
+#       • Biopython 1.7.6
 #       • Boto3
-#       • Fabric
 #       • Pandas
 #
 #   You can check the python modules currently installed in your system by running: python -c "help('modules')"

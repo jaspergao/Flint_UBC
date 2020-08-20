@@ -1,46 +1,6 @@
 #!/usr/bin/python
 # coding: utf-8
 
-# ---------------------------------------------------------------------------------------------------------------------
-#
-#                                       Florida International University
-#
-#   This software is a "Camilo Valdes Work" under the terms of the United States Copyright Act.
-#   Please cite the author(s) in any work or product based on this material.
-#
-#   OBJECTIVE:
-#	    The purpose of this program is to create the primary Spark driver application for the implementation of the
-#       Flint metagenomic profiling and analysis framework.  This script contains the the application's "main()"
-#       function and will define the data structures to be run in the cluster.
-#
-#
-#   NOTES:
-#   Please see the dependencies section below for the required libraries (if any).
-#
-#   DEPENDENCIES:
-#       • Apache-Spark
-#       • Python
-#       • Biopython
-#       • Boto3
-#       • Fabric
-#       • Pandas
-#
-#   You can check the python modules currently installed in your system by running: python -c "help('modules')"
-#
-#   USAGE:
-#       Run the program with the "--help" flag to see usage instructions.
-#
-#	AUTHOR:
-#           Camilo Valdes
-#           cvalde03@fiu.edu
-#           https://github.com/camilo-v
-#			Florida International University, FIU
-#           School of Computing and Information Sciences
-#           Bioinformatics Research Group, BioRG
-#           http://biorg.cs.fiu.edu/
-#
-#
-# ---------------------------------------------------------------------------------------------------------------------
 
 #   Spark Modules
 from pyspark import SparkConf, SparkContext
@@ -176,7 +136,7 @@ def main(args):
     print("Sucessful bowtie2_#_threads")
     print("Coalesce_output set to:")
     print(coalesce_output)
-
+    
 
     # --------------------------------------------- Annotations Parsing -----------------------------------------------
     #
@@ -275,23 +235,6 @@ def main(args):
                       "] [ERROR] ⚠️ Stream Directory Key Error. Missing: " + str(stream_dir_key_error))
                 exit(1)
 
-        # ----------------------------------- Properties for Streaming from Kinesis -----------------------------------
-        elif use_streaming_kinesis:
-            try:
-                batch_duration      = float(aSample["batch_duration"])  # In seconds.
-                app_name            = aSample["streaming_app_name"]
-                output_directory    = aSample["output_dir"]
-                stream_name         = aSample["stream_name"]
-                endpoint_url        = aSample["endpoint_url"]
-                region_name         = aSample["region_name"]
-                number_of_shards    = aSample["number_of_shards"]
-
-            except KeyError as stream_kinesis_key_error:
-                print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) +
-                      "] [ERROR] ⚠️ Stream Kinesis Key Error. Missing: " + str(stream_kinesis_key_error))
-                exit(1)
-
-
         # ---------------------------------------------- Output Files -------------------------------------------------
         #
         # If we are not saving to AWS S3, then we'll check if the output directory exists — either the default
@@ -378,36 +321,6 @@ def main(args):
                                             )
             except ValueError as e:
                 print("Something went wrong in streaming_directory: {}".format(e))
-
- 
-        # ---------------------------------- Stream from a Kinesis source ---------------------------------------------
-        if use_streaming_kinesis:
-            try:
-                sj.dispatch_stream_from_kinesis(sampleID=sampleID,
-                                                sample_format=sample_format,
-                                                output_file=output_file,
-                                                save_to_s3=save_to_s3,
-                                                save_to_local=save_to_local,
-                                                partition_size=partition_size,
-                                                ssc=ssc,
-                                                app_name=app_name,
-                                                stream_name=stream_name,
-                                                endpoint_url=endpoint_url,
-                                                region_name=region_name,
-                                                number_of_shards=number_of_shards,
-                                                streaming_timeout=streaming_timeout,
-                                                sensitive_align=sensitive_align,
-                                                annotations_dictionary=annotations_dictionary,
-                                                s3_output_bucket=s3_output_bucket,
-                                                verbose_output=verbose_output,
-                                                keep_shard_profiles=keep_shard_profiles,
-                                                coalesce_output=coalesce_output,
-                                                sample_type=sample_type,
-                                                debug_mode=debug_mode
-                                                )
-            except ValueError as e:
-                print("Something went wrong in kinesis streaming directory: {}".format(e))
-
 
         # -------------------------------------- Coalesced Output Reports ---------------------------------------------
         #

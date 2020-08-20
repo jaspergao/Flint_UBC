@@ -343,8 +343,6 @@ def dispatch_stream_from_dir(stream_source_dir, sampleID, sample_format, output_
 
         overall_abundance_accumulator = sc.accumulator({}, AbundanceAccumulator())
         set_overall_abundances(overall_abundance_accumulator)
-
-        print("stream reads through spark line 347")
         #   In this approach, we'll stream the reads from a S3 directory that we monitor with Spark.
         sample_dstream = ssc.textFileStream(stream_source_dir)
         print("stream_source_dir is s3://flint-implementation/reads2/")

@@ -1,33 +1,5 @@
 #!/bin/bash
 
-# ---------------------------------------------------------------------------------------------------------------------
-#
-#                                   		   Bioinformatics Research Group
-#												http://biorg.cis.fiu.edu/
-#                             			  	  Florida International University
-#
-#   This software is a "Camilo Valdes Work" under the terms of the United States Copyright Act.
-#   Please cite the author(s) in any work or product based on this material.
-#
-#   OBJECTIVE:
-#	The purpose of this script is to copy required software into the worker nodes during an EMR deployment.
-#	This script is called when an EMR cluster is provisioned during the "Additional Options" and "Bootstrap Actions".
-#
-#
-#   NOTES:
-#   Please see the dependencies and/or assertions section below for any requirements.
-#
-#   DEPENDENCIES:
-#
-#       • wget
-#
-#
-#	AUTHOR:	Camilo Valdes (cvalde03@fiu.edu)
-#			Bioinformatics Research Group,
-#			School of Computing and Information Sciences,
-#			Florida International University (FIU)
-#
-# ---------------------------------------------------------------------------------------------------------------------
 
 
 #	Exit immediately if a command exits with a non-zero exit status. -x verbose bash workflow
@@ -91,7 +63,7 @@ printf 'PATH=$PATH:'$BBMAP_DIR'/; export PATH\n' >> ~/.bashrc
 #
 #	The certificate is used so we can login into the worker nodes.
 #
-CERT_NAME="Mohn_flint_NCalifornia.pem"
+CERT_NAME="jasperMohnLab.pem"
 S3_CERT="//"$SOURCE_BUCKET_NAME"/certs/"$CERT_NAME
 
 CERT_DIR="/home/hadoop/certs"

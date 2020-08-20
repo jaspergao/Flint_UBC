@@ -1,29 +1,5 @@
 #!/bin/bash
 
-# ---------------------------------------------------------------------------------------------------------------------
-#
-#                                  		Florida International University
-#
-#   This software is a "Camilo Valdes Work" under the terms of the United States Copyright Act.
-#   Please cite the author(s) in any work or product based on this material.
-#
-#   OBJECTIVE:
-#	The purpose of this script is to act as a basic driver of the index provisioning script.
-#
-#   NOTES:
-#   Please see the dependencies and/or assertions section below for any requirements.
-#
-#   DEPENDENCIES:
-#		• Apache-Spark
-#       • Python
-#		• flint.py
-#
-#	AUTHOR:
-#			Camilo Valdes (camilo@castflyer.com)
-#			Florida International University (FIU)
-#
-#
-# ---------------------------------------------------------------------------------------------------------------------
 
 echo ""
 echo "[" `date '+%m/%d/%y %H:%M:%S'` "]"

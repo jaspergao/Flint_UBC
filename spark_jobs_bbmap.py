@@ -428,7 +428,6 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
             alignment_output, alignment_error = align_subprocess.communicate(input="\n".join(reads_list))
             #  Here we join a new line to the broadcast variable values in order for bbmap to correctly recognize the Header/
             #  DNA Sequence/ + / Quality Score 
-
             for a_read in alignment_output.strip().decode().splitlines():
 
                 #   Each alignment (in SAM format) is parsed and broken down into two (2) pieces: the read name,

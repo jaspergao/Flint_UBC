@@ -102,6 +102,7 @@ sudo pip-3.6 install pathlib2
 sudo pip-3.6 install "biopython==1.76"
 sudo pip-3.6 install wheel
 sudo pip-3.6 install pandas
+sudo pip-3.6 install "numpy==1.15.4"
 
 # ------------------------------------------------ Spark Conf ---------------------------------------------------------
 #

@@ -1,0 +1,34 @@
+[
+    {
+        "InstanceCount": 1,
+        "Name": "Master Node",
+        "InstanceGroupType": "MASTER",
+        "InstanceType": "c4.2xlarge",
+        "AutoScalingPolicy": {
+            "Rules": [
+              {
+                  "Action": {
+                    "Market": "SPOT"
+                  }
+                }
+            ]
+        }
+    },
+    {
+        "InstanceCount": 64,
+        "Name": "Slave Node",
+        "InstanceGroupType": "CORE",
+        "InstanceType": "c4.2xlarge",
+        "AutoScalingPolicy": {
+            "Rules": [
+              {
+                  "Action": {
+                    "Market": "SPOT"
+                  }
+                }
+            ]
+        }
+    }
+]
+    
+            

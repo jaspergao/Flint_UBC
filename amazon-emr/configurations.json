@@ -1,0 +1,29 @@
+[
+    {
+        "Classification":"spark",
+        "Properties":{
+            "maximizeResourceAllocation":"true"
+        }
+    },
+    {
+        "Configurations":
+        [
+            {
+                "Classification":"export",
+                "Properties":{
+                    "PYSPARK_PYTHON":"/usr/bin/python3"
+                    }
+                }
+        ],
+        "Classification":"spark-env",
+        "Properties":{}
+    },
+    {
+        "Classification":"yarn-site",
+        "Properties":{
+            "yarn.nodemanager.resource.memory-mb":"15000",
+            "yarn.nodemanager.pmem-check-enabled":"false",
+            "yarn.scheduler.maximum-allocation-mb":"15000",
+            "yarn.nodemanager.vmem-check-enabled":"false"}
+    }
+]
