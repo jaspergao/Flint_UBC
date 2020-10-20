@@ -534,7 +534,7 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
             #
             #   Run starts here.
             #
-            print("Run starts here......")
+            print("Run starts here......") 
             print("[" + time.strftime('%d-%b-%Y %H:%M:%S', time.localtime()) + "] Shard: " +
                   str(get_shard_counter()) + " of " + str(get_shards()))
 
@@ -568,6 +568,7 @@ def profile_sample(sampleReadsRDD, sc, ssc, output_file, save_to_s3, save_to_loc
                                    bbmap_index_path=bowtie2_index_path,
                                    bbmap_index_name=bowtie2_index_name,
                                    bbmap_number_threads=bowtie2_number_threads)
+            
             print("bbmapCMD array is:.............")
             print(bbmapCMD)
             alignments_RDD = data.mapPartitions(align_with_bbmap)

@@ -97,12 +97,17 @@ mkdir -p $FLINT_HOME
 #   Since May 25th, 2020 Biopython 1.77 is released which no longer supports Python 2.7 
 #   For EMR version 5.21 >, default python for pyspark is 3.6.x thus to install third party libraries we need pip-3.6
 
+#sudo pip install numpy --upgrade
+# upgrading numpy from base python system 
 sudo pip-3.6 install boto3
 sudo pip-3.6 install pathlib2
 sudo pip-3.6 install "biopython==1.76"
 sudo pip-3.6 install wheel
-sudo pip-3.6 install pandas
-sudo pip-3.6 install "numpy==1.15.4"
+sudo pip-3.6 install "pandas==1.0.5"
+# uninstall our numpy package and then reinstall with newer and more compatible numpy version
+#sudo pip-3.6 install numpy --upgrade 
+
+
 
 # ------------------------------------------------ Spark Conf ---------------------------------------------------------
 #

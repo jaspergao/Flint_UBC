@@ -106,7 +106,7 @@ mkdir -p $FLINT_HOME
 sudo pip install pathlib2
 sudo pip install "biopython==1.76"
 sudo pip install wheel
-sudo pip install pandas
+sudo pip install "pandas==1.0.5"
 
 # ------------------------------------------------ Spark Conf ---------------------------------------------------------
 #

@@ -16,7 +16,6 @@ bucket_name = "flint-implementation/reads/interleave/"
 
 
 def lambda_handler(event, handler):
-    start_ec2_instance()
 
 
     return {

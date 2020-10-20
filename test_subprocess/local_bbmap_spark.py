@@ -13,13 +13,10 @@ import pprint as pp
 # x = ['Python', 'programming', 'is', 'awesome!']
 # print(sorted(x, key=lambda arg: arg.lower()))
 # print(list(filter(lambda arg: len(arg) < 8, x)))
-​
 #Read text file to list of unicode elements
 #Pipe elements to bowtie2
-#NOTE: Bowtie2 <=2.3.5 does not work with interleaved fastq 
-#Upgrade to 2.4.1 
-# BBMap v38.86
-​
+
+
 #Define variables
 #######################################################
 fastq = "/home/david/FLINT/Ag10000.IL.fastq"
